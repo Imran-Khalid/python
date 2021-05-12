@@ -1,54 +1,9 @@
-from flask import Flask, render_template, request, redirect, jsonify
+from flask import Flask, render_template, request, redirect
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from model import Car, car_schema,cars_schema
+from db import db, app , session
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from flask_marshmallow import Marshmallow
-from marshmallow import  fields, post_load
 
-app = Flask(__name__)
-some_engine = create_engine('mysql+mysqlconnector://{user}:{password}@{server}/{database}'.format(user='root', password='', server='localhost', database='carsales'))
-
-app.config['SQLALCHEMY_DATABASE_URI']='mysql+mysqlconnector://{user}:{password}@{server}/{database}'.format(user='root', password='', server='localhost', database='carsales')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
-ma = Marshmallow(app)
-
-# create a configured "Session" class
-Session = sessionmaker(bind=some_engine)
-# create a Session
-session = Session()
-
-class Car(db.Model):
-    id = db.Column(db.Integer, primary_key = True)
-    name = db.Column(db.String(200))
-    model = db.Column(db.String(200))
-    number = db.Column(db.String(200))
-    desc = db.Column(db.String(500))
-    date_created = db.Column(db.DateTime, default = datetime.utcnow)
-
-    def __init__(self , name, model, number, desc):
-        self.name = name
-        self.model = model
-        self.number = number
-        self.desc = desc
-
-class CarSchema(ma.Schema):
-    id = fields.Integer(dump_only=True)
-    name = fields.String()
-    model = fields.Integer()
-    number = fields.Integer()
-    desc = fields.String()
-
-    @post_load
-    def create_car(self, data, **kwargs):
-        return Car(**data)
-
-    class Meta:
-        fields = ("id", "name", "model", "number", "desc")
-
-car_schema = CarSchema()
-cars_schema = CarSchema(many=True)
 
 @app.route('/', methods =['GET','POST'])
 def home():
