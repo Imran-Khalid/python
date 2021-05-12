@@ -4,6 +4,7 @@ from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from flask_marshmallow import Marshmallow
+from marshmallow import  fields, post_load
 
 app = Flask(__name__)
 some_engine = create_engine('mysql+mysqlconnector://{user}:{password}@{server}/{database}'.format(user='root', password='', server='localhost', database='carsales'))
@@ -33,6 +34,16 @@ class Car(db.Model):
         self.desc = desc
 
 class CarSchema(ma.Schema):
+    id = fields.Integer(dump_only=True)
+    name = fields.String()
+    model = fields.Integer()
+    number = fields.Integer()
+    desc = fields.String()
+
+    @post_load
+    def create_car(self, data, **kwargs):
+        return Car(**data)
+
     class Meta:
         fields = ("id", "name", "model", "number", "desc")
 
@@ -48,12 +59,13 @@ def home():
 @app.route('/add', methods =['GET','POST'])
 def add():
     if request.method=='POST':
-        name = request.form['name']
-        model = request.form['model']
-        number = request.form['number']
-        desc = request.form['desc']
-        car = Car(name, model, number, desc)
-        db.session.add(car)
+        input_data = {}
+        input_data['name'] = request.form['name']
+        input_data['model'] = request.form['model']
+        input_data['number'] = request.form['number']
+        input_data['desc'] = request.form['desc']
+        result = car_schema.load(input_data)
+        db.session.add(result)
         db.session.commit()
         return redirect("/")
 
@@ -66,13 +78,20 @@ def update(id):
         model = request.form['model']
         number = request.form['number']
         desc = request.form['desc']
-        car = Car.query.filter_by(id=id).first()
-        car.name=name
-        car.model=model
-        car.number=number
-        car.desc=desc
-        db.session.add(car)
-        db.session.commit()
+        input_data = {}
+        input_data['name'] = name
+        input_data['model'] = model
+        input_data['number'] = number
+        input_data['desc'] = desc
+        result = car_schema.load(input_data)
+        if(result):
+            car = Car.query.filter_by(id=id).first()
+            car.name=name
+            car.model=model
+            car.number=number
+            car.desc=desc
+            db.session.commit()
+            return redirect("/")
         return redirect("/")
 
     my_car = Car.query.filter_by(id=id).first()
